@@ -1,0 +1,64 @@
+#spring:
+#  main:
+#    web-application-type: none
+#
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/notifications_db?useSSL=false&allowPublicKeyRetrieval=true
+#    username: root
+#    password: root
+#
+#  jpa:
+#    hibernate:
+#      ddl-auto: validate
+#    show-sql: true
+#
+#  security:
+#    user:
+#      name: admin
+#      password: secret123
+#
+#  boot:
+#    docker:
+#      compose:
+#        enabled: false
+#
+#worker:
+#  poll-ms: 5000
+#  batch-size: 10
+#  base-retry-seconds: 30
+#  processing-timeout-minutes: 10
+
+
+spring:
+  main:
+    web-application-type: none
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/notifications_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: root
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  boot:
+    docker:
+      compose:
+        enabled: false
+
+worker:
+  poll-ms: 5000
+  batch-size: 10
+  base-retry-seconds: 30
+  max-backoff-seconds: 86400
+  processing-timeout-minutes: 10
+  reset-ms: 60000
+
+
+

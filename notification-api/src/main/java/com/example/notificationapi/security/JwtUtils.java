@@ -2,37 +2,59 @@ package com.example.notificationapi.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtils {
 
-    private final String secret;
-    private final String issuer;
+    // In real projects, move this to application.yml and use @Value
+    private static final String SECRET_KEY = "change-this-secret-key-change-this-secret-key-123";
+    private static final long EXPIRATION_MS = 60 * 60 * 1000; // 1 hour
+
     private final Key key;
+    private final JwtParser parser;
 
-    // Note the '@Value' annotation on constructor parameters (correct syntax)
-    public JwtUtils(@Value("${security.jwt.secret}") String secret,
-                    @Value("${security.jwt.issuer}") String issuer) {
-        this.secret = secret;
-        this.issuer = issuer;
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public Jws<Claims> validate(String token) {
-        return Jwts.parserBuilder()
+    public JwtUtils() {
+        this.key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        this.parser = Jwts.parserBuilder()
                 .setSigningKey(key)
-//                .requireIssuer(issuer)
-                .build()
-                .parseClaimsJws(token);
+                .build();
     }
 
-    public boolean isExpired(Claims claims) {
-        return claims.getExpiration().before(new Date());
+    /**
+     * Create JWT for authenticated user.
+     */
+    public String generateToken(Authentication authentication) {
+        String username = authentication.getName();
+
+        String scope = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(" ")); // e.g. "ROLE_USER ROLE_ADMIN"
+
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + EXPIRATION_MS);
+
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("scope", scope)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Validate token and return parsed claims.
+     * Throws exceptions if invalid/expired.
+     */
+    public Jws<Claims> validate(String token) {
+        return parser.parseClaimsJws(token);
     }
 }
